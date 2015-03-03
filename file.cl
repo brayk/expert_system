@@ -7,8 +7,35 @@
 	(assetTotal 0);
 	(debtTotal 0);
 	(worthTotal 0);
+	(entTotal 0)
 )
 
+;FUZZY TEMPLATES*************************
+(deftemplate Affinity
+	0 100 units
+	((plus2 (75 0) (100 1))
+	 (plus1 (50 0) (100 0))
+	 (zero (25 0) (50 1) (75 0))
+	 (minus1 (0 1) (50 0))
+	 (minus2 (0 1) (25 0))))
+	 
+(deftemplate Viability
+	0 100 units
+	((plus2 (75 0) (100 1))
+	 (plus1 (50 0) (100 0))
+	 (zero (25 0) (50 1) (75 0))
+	 (minus1 (0 1) (50 0))
+	 (minus2 (0 1) (25 0))))
+	 
+(deftemplate Portion
+	0 100 units
+	((SmlstP (0 1) (25 0))
+	 (SmP (0 0) (25 1) (50 0))
+	 (MedP (25 0) (50 1) (75 0))
+	 (LgP (50 0) (75 1) (100 0))
+	 (LgstP (75 0) (100 1))))
+	 
+;FUZZY TEMPLATE END *************************************
 
 ; INITIAL STATE RULE
 (defrule rule1
@@ -35,6 +62,7 @@
 (defrule WILL_ENTITIES
 	?f <- (state one)
 	?g <- (moreFamily NULL)
+	?e <- (entTotal ?et); To total up the amount of potential beneficiaries
 	(category will)
 	=>
 	(printout t "List all relational entities."crlf 
@@ -45,24 +73,34 @@
 		     "{spouse, child, parent, sibling,"crlf
 		     "cousin, grandparent, other-family,"crlf
 		     "church, other-organization}"crlf
-		     "enter 'done' for both entries when finished"crlf
+		     "Affinity: <0-100> Desire to give an individual entity a portion of assets"
+			 "Viability: <0-100> Financial security and competency of the individual"
+			 "enter 'done' for both entries when finished"crlf
 			 crlf
-		     "--------"crlf 
-		     "Name: ")
+		     "--------"crlf) 
+	(printout t "Name: ")
 	(retract ?g)
 	(bind ?n (read))
 	(printout t "Relation: ")
 	(bind ?r (read)) 
-	(assert (entity ?n ?r))
+	(printout t "Affinity: ")
+	(bind ?a (read)) 
+	(printout t "Viability: ")
+	(bind ?v (read)) 
+	
+	(assert (entity ?n ?r ?a ?v))
+	(assert (entTotal (+ ?et 1)))
+	(retract ?e)
+	
 	(assert (moreFamily yes))
 	(printout t )
 )
 
 
-(defrule will1_terminater; this should check if the respsonse from will1 or loop is ever 'done' then break the facts
+(defrule will1_terminater; this should check if the response from will1 or loop is ever 'done' then break the facts
 	(declare (salience 1)); Need this to stop the loop
 	?g <- (moreFamily yes)
-	?f <- (entity done done)
+	?f <- (entity done done done done)
 	=>
 	(retract ?g)
 	(retract ?f)
@@ -72,6 +110,7 @@
 	
 (defrule will1_loop; this should continue taking input if the state is one aand more family is yes.
 	?f <- (state one)
+	?e <- (entTotal ?et); To total up the amount of potential beneficiaries
 	(category will)
 	(moreFamily yes)
 	=>
@@ -80,7 +119,15 @@
 	(bind ?n (read))
 	(printout t "Relation: ")
 	(bind ?r (read))
-	(assert (entity ?n ?r ))
+	(printout t "Affinity: ")
+	(bind ?a (read)) 
+	(printout t "Viability: ")
+	(bind ?v (read))
+	
+	(assert (entity ?n ?r ?a ?v))
+	(assert (entTotal (+ ?et 1)))
+	(retract ?e)
+	
 	(printout t )
 	(retract ?f)
 	(assert (state one))
@@ -180,7 +227,7 @@
 )
 
 (defrule debt_loop; this should continue taking input if the state is one and more debts is yes.
-	?f <- (state two)
+	?f <- (state three)
 	(category will)
 	(moreDebts yes)
 	=>
@@ -226,3 +273,122 @@
 	(retract ?s)
 	(assert (state five))
 )
+
+	
+	
+	
+
+	
+;FUZZY RULES **************************
+(defrule fuzzify
+	?s <- (state five)
+	?e <- (entity ?n ?r ?a ?v)
+	=>
+	(assert (Affinity (?a 0) (?a 1) (?a 0)))
+	(assert (Viability (?a 0) (?a 1) (?a 0)))
+	(retract ?s)
+	(assert (state six))
+)
+
+(defrule defuzzify
+	(declare (salience -1))
+	?s <- (state six)
+	?f <- (Portion ?)
+	=>
+	(bind ?t (moment-defuzzify ?f))
+	(printout t "action --> " ?t crlf))
+	(assert (state five))
+)
+
+(defrule twoTwo
+	(Affinity plus2)
+	(Viabilityy plus2)
+	=>
+	(assert (Portion LgstP)))
+	
+(defrule oneTwo
+	(or ((Affinity plus2)(Viability plus1))
+		((Affinity plus1) (Viability plus2)))
+	=>
+	(assert (Portion LgstP)))
+	
+(defrule zeroTwo
+	(or ((Affinity plus2)(Viability zero))
+		((Affinity zero) (Viability plus2)))
+	=>
+	(assert (Portion LgP)))
+	
+(defrule mOneTwo
+	(or ((Affinity plus2)(Viability minus1))
+		((Affinity minus1) (Viability plus2)))
+	=>
+	(assert (Portion MedP)))
+	
+(defrule mTwoTwo
+	(or ((Affinity plus2)(Viability minus2))
+		((Affinity minus2) (Viability plus2)))
+	=>
+	(assert (Portion MedP)))
+	
+(defrule oneOne
+	(Affinity plus1)
+	(Viabilityy plus1)
+	=>
+	(assert (Portion LgP)))
+	
+(defrule zeroOne
+	(or ((Affinity plus1)(Viability zero))
+		((Affinity zero) (Viability plus1)))
+	=>
+	(assert (Portion MedP)))
+	
+(defrule mOneOne
+	(or ((Affinity plus1)(Viability minus1))
+		((Affinity minus1) (Viability plus1)))
+	=>
+	(assert (Portion MedP)))
+	
+(defrule mTwoOne
+	(or ((Affinity plus1)(Viability minus2))
+		((Affinity minus2) (Viability plus1)))
+	=>
+	(assert (Portion MedP)))
+	
+(defrule zeroZero
+	(Affinity zero)
+	(Viabilityy zero)
+	=>
+	(assert (Portion MedP)))
+	
+(defrule mOneZero
+	(or ((Affinity minus1)(Viability zero))
+		((Affinity zero) (Viability minus1)))
+	=>
+	(assert (Portion MedP)))
+	
+(defrule mTwoZero
+	(or ((Affinity minus2)(Viability zero))
+		((Affinity zero) (Viability minus2)))
+	=>
+	(assert (Portion SmP)))
+	
+
+(defrule mOneMOne
+	(Affinity minus1)
+	(Viabilityy minus1)
+	=>
+	(assert (Portion SmP)))
+
+(defrule mTwoMOne
+	(or ((Affinity minus2)(Viability minus1))
+		((Affinity minus1) (Viability minus2)))
+	=>
+	(assert (Portion SmlstP)))
+	
+	
+(defrule mTwoMTwo
+	(Affinity minus2)
+	(Viabilityy minus2)
+	=>
+	(assert (Portion SmlstP)))
+	
