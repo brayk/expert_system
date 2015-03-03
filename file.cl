@@ -1,5 +1,5 @@
 (deffacts states
-	(state initial); intiial, will, trust, revision?
+	(state initial); initial, will, trust, revision?
 	(category NULL);
 	(moreFamily NULL); assume they have more family until not
 	(moreAssets NULL); keep this NULL to start assets then enter loop if more
@@ -129,8 +129,6 @@
 	(retract ?e)
 	
 	(printout t )
-	(retract ?f)
-	(assert (state one))
 )
 
 (defrule ASSET_ENTITIES
@@ -141,7 +139,7 @@
 	(printout t crlf crlf"List all assets."crlf
 			"--------"crlf
 			"==Help=="crlf
-			"Name: <Asset Name>"
+			"Name: <Asset Name>"crlf
 			"Type: <Asset Type> types include:"crlf
 			"property, furnishing, valuable, vehicle, savings,"crlf
 			"checkings, cash, taxrefund, stocks,"crlf
@@ -156,9 +154,23 @@
 	(bind ?t (read))
 	(printout t "Value: ")
 	(bind ?v (read))
-	(assert (asset n? t? v?))
+	(assert (asset ?n ?t ?v))
 	(assert (moreAssets yes))
 	(printout t)
+)
+
+(defrule asset_total; 		this will go through the assets and add their value to a final asset total 
+	;	and reassert assets as final assets meaning their value has already been 
+	?g <- (asset ?n ?t ?v);	and finalized
+	?f <- (assetTotal ?a)
+	?m <- (moreAssets no)
+	=>
+	(retract ?g)
+	(retract ?f)
+	(bind ?z (+ ?v ?a))
+	(printout t ?z)
+	(assert (assetTotal ?z))
+	(assert (finalAsset ?n ?t ?v))
 )
 
 (defrule asset_loop; this should continue taking input if the state is one aand more family is yes.
@@ -166,39 +178,31 @@
 	(category will)
 	(moreAssets yes)
 	=>
-
-	(retract ?g)
+	(printout t "------"crlf)
+	(printout t "Name: ")
 	(bind ?n (read))
 	(printout t "Type: ")
 	(bind ?t (read))
 	(printout t "Value: ")
 	(bind ?v (read))
-	(assert (asset n? t? v?))
-	(assert (moreAssets yes))
+	(assert (asset ?n ?t ?v))
 	(printout t)
 )
 
 (defrule asset_terminate
 	(declare (salience 1)); Need this to stop the loop
+	?i <- (state two)
 	?g <- (moreAssets yes)
 	?f <- (asset done done done)
 	=>
 	(retract ?g)
 	(retract ?f)
+	(retract ?i)
 	(assert (moreAssets no))
 	(assert (state three))
 )
 
-(defrule asset_total; 		this will go through the assets and add their value to a final asset total 
-	(declare (salience 1));	and reassert assets as final assets meaning their value has already been 
-	?g <- (asset ?n ?t ?v);	and finalized
-	?f <- (assetTotal ?a)
-	=>
-	(assert (assetTotal (+ ?a ?v)))
-	(assert (finalAsset ?n ?t ?v))
-	(retract ?g)
-	(retract ?f)
-)
+
 
 (defrule DEBT_ENTITIES
 	?f <- (state three)
@@ -221,7 +225,7 @@
 	(bind ?t (read))
 	(printout t "Value: ")
 	(bind ?v (read))
-	(assert (debt n? t? v?))
+	(assert (debt ?n ?t ?v))
 	(assert (moreDebts yes))
 	(printout t)
 )
@@ -231,24 +235,25 @@
 	(category will)
 	(moreDebts yes)
 	=>
-	(retract ?g)
 	(bind ?n (read))
 	(printout t "Type: ")
 	(bind ?t (read))
 	(printout t "Value: ")
 	(bind ?v (read))
-	(assert (debt n? t? v?))
+	(assert (debt ?n ?t ?v))
 	(assert (moreDebts yes))
 	(printout t)
 )
 
 (defrule debt_terminate
 	(declare (salience 1)); Need this to stop the loop
+	?i <- (state three)
 	?g <- (moreDebt yes)
 	?f <- (debt done done done)
 	=>
 	(retract ?g)
 	(retract ?f)
+	(retract ?i)
 	(assert (moreDebts no))
 	(assert (state four))
 )
@@ -269,7 +274,7 @@
 	?a <- (assetTotal ?at)
 	?d <- (debtTotal ?dt)
 	=>
-	(assert (worthTotal (- at dt)))
+	(assert (worthTotal (- ?at ?dt)))
 	(retract ?s)
 	(assert (state five))
 )
@@ -296,9 +301,8 @@
 	?f <- (Portion ?)
 	=>
 	(bind ?t (moment-defuzzify ?f))
-	(printout t "action --> " ?t crlf))
-	(assert (state five))
-)
+	(printout t "action --> " ?t crlf)
+	(assert (state five)))
 
 (defrule twoTwo
 	(Affinity plus2)
@@ -307,26 +311,26 @@
 	(assert (Portion LgstP)))
 	
 (defrule oneTwo
-	(or ((Affinity plus2)(Viability plus1))
-		((Affinity plus1) (Viability plus2)))
+	(or (and(Affinity plus2)(Viability plus1))
+		(and(Affinity plus1) (Viability plus2)))
 	=>
 	(assert (Portion LgstP)))
 	
 (defrule zeroTwo
-	(or ((Affinity plus2)(Viability zero))
-		((Affinity zero) (Viability plus2)))
+	(or (and (Affinity plus2)(Viability zero))
+		(and (Affinity zero) (Viability plus2)))
 	=>
 	(assert (Portion LgP)))
 	
 (defrule mOneTwo
-	(or ((Affinity plus2)(Viability minus1))
-		((Affinity minus1) (Viability plus2)))
+	(or (and (Affinity plus2)(Viability minus1))
+		(and (Affinity minus1) (Viability plus2)))
 	=>
 	(assert (Portion MedP)))
 	
 (defrule mTwoTwo
-	(or ((Affinity plus2)(Viability minus2))
-		((Affinity minus2) (Viability plus2)))
+	(or (and (Affinity plus2)(Viability minus2))
+		(and (Affinity minus2) (Viability plus2)))
 	=>
 	(assert (Portion MedP)))
 	
@@ -337,20 +341,20 @@
 	(assert (Portion LgP)))
 	
 (defrule zeroOne
-	(or ((Affinity plus1)(Viability zero))
-		((Affinity zero) (Viability plus1)))
+	(or (and (Affinity plus1)(Viability zero))
+		(and (Affinity zero) (Viability plus1)))
 	=>
 	(assert (Portion MedP)))
 	
 (defrule mOneOne
-	(or ((Affinity plus1)(Viability minus1))
-		((Affinity minus1) (Viability plus1)))
+	(or (and (Affinity plus1)(Viability minus1))
+		(and (Affinity minus1) (Viability plus1)))
 	=>
 	(assert (Portion MedP)))
 	
 (defrule mTwoOne
-	(or ((Affinity plus1)(Viability minus2))
-		((Affinity minus2) (Viability plus1)))
+	(or (and (Affinity plus1)(Viability minus2))
+		(and (Affinity minus2) (Viability plus1)))
 	=>
 	(assert (Portion MedP)))
 	
@@ -361,14 +365,14 @@
 	(assert (Portion MedP)))
 	
 (defrule mOneZero
-	(or ((Affinity minus1)(Viability zero))
-		((Affinity zero) (Viability minus1)))
+	(or (and (Affinity minus1)(Viability zero))
+		(and (Affinity zero) (Viability minus1)))
 	=>
 	(assert (Portion MedP)))
 	
 (defrule mTwoZero
-	(or ((Affinity minus2)(Viability zero))
-		((Affinity zero) (Viability minus2)))
+	(or (and (Affinity minus2)(Viability zero))
+		(and (Affinity zero) (Viability minus2)))
 	=>
 	(assert (Portion SmP)))
 	
@@ -380,15 +384,15 @@
 	(assert (Portion SmP)))
 
 (defrule mTwoMOne
-	(or ((Affinity minus2)(Viability minus1))
-		((Affinity minus1) (Viability minus2)))
+	(or (and (Affinity minus2)(Viability minus1))
+		(and (Affinity minus1) (Viability minus2)))
 	=>
 	(assert (Portion SmlstP)))
 	
 	
 (defrule mTwoMTwo
 	(Affinity minus2)
-	(Viabilityy minus2)
+	(Viability minus2)
 	=>
 	(assert (Portion SmlstP)))
 	
