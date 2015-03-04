@@ -6,25 +6,25 @@
 	(moreDebts NULL);
 	(assetTotal 0);
 	(debtTotal 0);
-	(worthTotal 0);
 	(entTotal 0)
+	(fuzzyTotal 0)
 )
 
 ;FUZZY TEMPLATES*************************
 (deftemplate Affinity
 	0 100 units
 	((plus2 (75 0) (100 1))
-	 (plus1 (50 0) (100 0))
+	 (plus1 (60 0)(75 1) (90 0))
 	 (zero (25 0) (50 1) (75 0))
-	 (minus1 (0 1) (50 0))
+	 (minus1 (10 0) (25 1) (40 0))
 	 (minus2 (0 1) (25 0))))
 	 
 (deftemplate Viability
 	0 100 units
 	((plus2 (75 0) (100 1))
-	 (plus1 (50 0) (100 0))
+	 (plus1 (60 0)(75 1) (90 0))
 	 (zero (25 0) (50 1) (75 0))
-	 (minus1 (0 1) (50 0))
+	 (minus1 (10 0) (25 1) (40 0))
 	 (minus2 (0 1) (25 0))))
 	 
 (deftemplate Portion
@@ -40,6 +40,7 @@
 ; INITIAL STATE RULE
 (defrule rule1
 	?f <- (state initial)
+	?c <- (category NULL)
 	=>
 	(printout t "-----"
 		    crlf crlf 
@@ -54,6 +55,7 @@
 	(printout t "Do you want to make a \"will\" or a \"trust\"?:")
 	(assert (category (read)))
 	(retract ?f)
+	(retract ?c)
 	(assert (state one))
 	(printout t crlf)
 )
@@ -92,6 +94,9 @@
 	(assert (entTotal (+ ?et 1)))
 	(retract ?e)
 	
+	(retract ?f)
+	(assert (state onefive))
+	
 	(assert (moreFamily yes))
 	(printout t )
 )
@@ -100,7 +105,7 @@
 (defrule will1_terminater; this should check if the response from will1 or loop is ever 'done' then break the facts
 	(declare (salience 1)); Need this to stop the loop
 	?g <- (moreFamily yes)
-	?f <- (entity done done done done)
+	?f <- (entity done ? ? ?)
 	=>
 	(retract ?g)
 	(retract ?f)
@@ -127,6 +132,8 @@
 	(assert (entity ?n ?r ?a ?v))
 	(assert (entTotal (+ ?et 1)))
 	(retract ?e)
+	(retract ?f)
+	(assert (state onefive))
 	
 	(printout t )
 )
@@ -161,6 +168,7 @@
 
 (defrule asset_total; 		this will go through the assets and add their value to a final asset total 
 	;	and reassert assets as final assets meaning their value has already been 
+	(declare (salience 1))
 	?g <- (asset ?n ?t ?v);	and finalized
 	?f <- (assetTotal ?a)
 	?m <- (moreAssets no)
@@ -171,6 +179,14 @@
 	(printout t ?z)
 	(assert (assetTotal ?z))
 	(assert (finalAsset ?n ?t ?v))
+	(assert (state three))
+)
+
+(defrule assetTotalWatch
+	(not (asset ? ? ?))
+	(moreAssets no)
+	=>
+	(assert (state three))
 )
 
 (defrule asset_loop; this should continue taking input if the state is one aand more family is yes.
@@ -187,19 +203,21 @@
 	(bind ?v (read))
 	(assert (asset ?n ?t ?v))
 	(printout t)
+	(retract ?f);we must retract and assert this to make sure this rule fires again
+	(assert (state two));for a "different" set of facts
 )
 
 (defrule asset_terminate
 	(declare (salience 1)); Need this to stop the loop
 	?i <- (state two)
 	?g <- (moreAssets yes)
-	?f <- (asset done done done)
+	?f <- (asset done ? ?)
 	=>
 	(retract ?g)
 	(retract ?f)
 	(retract ?i)
 	(assert (moreAssets no))
-	(assert (state three))
+	
 )
 
 
@@ -212,7 +230,7 @@
 	(printout t "List all debts."crlf
 			"--------"crlf
 			"==Help=="crlf
-			"Name: <Debt Name>"
+			"Name: <Debt Name> crlf"
 			"Type: <Debt Type> types include:"crlf
 			"student(loans), taxes, support, loan, credit, other"crlf
 			"Value: <Debt Value>"crlf
@@ -235,38 +253,52 @@
 	(category will)
 	(moreDebts yes)
 	=>
+	
+	(printout  t crlf"Name: ")
 	(bind ?n (read))
 	(printout t "Type: ")
 	(bind ?t (read))
 	(printout t "Value: ")
 	(bind ?v (read))
 	(assert (debt ?n ?t ?v))
-	(assert (moreDebts yes))
+	(retract ?f);we must retract and assert this to make sure this rule fires again
+	(assert (state three));for a "different" set of facts
 	(printout t)
 )
 
 (defrule debt_terminate
 	(declare (salience 1)); Need this to stop the loop
 	?i <- (state three)
-	?g <- (moreDebt yes)
-	?f <- (debt done done done)
+	?g <- (moreDebts yes)
+	?f <- (debt done ? ?)
 	=>
 	(retract ?g)
 	(retract ?f)
 	(retract ?i)
 	(assert (moreDebts no))
-	(assert (state four))
+	
 )
 
 (defrule debt_total; 		this will go through the debts and add their value to a final debt total 
 	(declare (salience 1));	and reassert debts as final debts meaning their value has already been 
 	?g <- (debt ?n ?t ?v);	and finalized
 	?f <- (debtTotal ?a)
+	?m <- (moreDebts no)
 	=>
-	(assert (debtTotal (+ ?a ?v)))
+	(bind ?z (+ ?v ?a))
+	(printout t ?z)
+	(assert (debtTotal ?z))
 	(assert (finalDebt ?n ?t ?v))
 	(retract ?g)
 	(retract ?f)
+	
+)
+
+(defrule debtTotalWatch
+	(not (debt ? ? ?))
+	(moreDebts no)
+	=>
+	(assert (state four))
 )
 
 (defrule worth_total
@@ -274,39 +306,76 @@
 	?a <- (assetTotal ?at)
 	?d <- (debtTotal ?dt)
 	=>
-	(assert (worthTotal (- ?at ?dt)))
+	(bind ?z (- ?at ?dt))
+	(printout t ?z)
+	(assert (worthTotal ?z))
 	(retract ?s)
 	(assert (state five))
 )
 
 	
+;DISTRIBUTION RULES *************************
+(defrule findAverages
+	?s <- (state five)
+	?w <- (worthTotal ?wt)
+	?m <- (moreFamily no)
+	?z <- (fuzzTotal ?ft)
+	?e <- (entTotal ?et)
+	=>
+	(assert (fuzzAvg (/ ?ft ?et)))
+	(assert (worthAvg (/ ?wt ?et)))
+	(retract ?s)
+)
+
+(defrule distribute
+	?z <- (fuzzedEntity ?n ?r ?a ?v ?t)
+	?g <- (fuzzAvg ?fa)
+	?w <- (worthAvg ?wa)
+	=>
+	(assert (distEnt ?n ?r (+ ?wa (* ?wa (/ (- ?t ?fa) 10)))));complicated formula to get the portion for
+	;person based on the weighted average and the amount of assets
+)
 	
+(defrule testPrint
+	?h <- (distEnt ? ? ?)
+	=>
+	(printout t ?h)
+)
 	
 
 	
 ;FUZZY RULES **************************
 (defrule fuzzify
-	?s <- (state five)
+	
+	?s <- (state onefive)
 	?e <- (entity ?n ?r ?a ?v)
 	=>
-	(assert (Affinity (?a 0) (?a 1) (?a 0)))
-	(assert (Viability (?a 0) (?a 1) (?a 0)))
 	(retract ?s)
+	(retract ?e)
+	(assert (Affinity (?a 0) (?a 1) (?a 0)))
+	(assert (Viability (?v 0) (?v 1) (?v 0)))
+	(assert (finalEntity ?n ?r ?a ?v))
 	(assert (state six))
 )
 
 (defrule defuzzify
 	(declare (salience -1))
+	?e <- (finalEntity ?n ?r ?a ?v)
 	?s <- (state six)
 	?f <- (Portion ?)
+	?z <- (fuzzyTotal ?ft)
 	=>
 	(bind ?t (moment-defuzzify ?f))
+	(retract ?e)
+	(retract ?z)
+	(assert (fuzzyTotal (+ ?ft ?t)));add the fuzzy value to the total for the averaging for weight
+	(assert (fuzzedEntity ?n ?r ?a ?v ?t));add the fuzzy valuation as the 5 (FIFTH) parameter ?t
 	(printout t "action --> " ?t crlf)
-	(assert (state five)))
+	(assert (state one)))
 
 (defrule twoTwo
 	(Affinity plus2)
-	(Viabilityy plus2)
+	(Viability plus2)
 	=>
 	(assert (Portion LgstP)))
 	
@@ -336,7 +405,7 @@
 	
 (defrule oneOne
 	(Affinity plus1)
-	(Viabilityy plus1)
+	(Viability plus1)
 	=>
 	(assert (Portion LgP)))
 	
@@ -360,7 +429,7 @@
 	
 (defrule zeroZero
 	(Affinity zero)
-	(Viabilityy zero)
+	(Viability zero)
 	=>
 	(assert (Portion MedP)))
 	
@@ -379,7 +448,7 @@
 
 (defrule mOneMOne
 	(Affinity minus1)
-	(Viabilityy minus1)
+	(Viability minus1)
 	=>
 	(assert (Portion SmP)))
 
