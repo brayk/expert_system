@@ -60,12 +60,67 @@
 	(printout t crlf)
 )
 
+(defrule USER_ENTITY
+	?f <- (state one)
+	=>
+	(printout t "Tell me about yourself"crlf 
+		     "--------"crlf  
+		     "==Help=="crlf
+		     "Name: <Your Name>"
+		     "Age: <Age> "crlf
+		     "Health: <good/fair/poor> Roughly evaluate your health"crlf
+			 "Out of State Real Estate: <yes/no>"crlf
+			 "Family Situation: <simple/complex/decline>"crlf
+		     "--------"crlf) 
+	
+	(printout t "Name: ")
+	(retract ?f)
+	(bind ?n (read))
+	(assert (name ?n))
+	
+	(printout t "Age: ")
+	(bind ?a (read)) 
+	(assert (age ?a))
+	
+	(printout t "Health: ")
+	(bind ?h (read)) 
+	(assert (health ?h))
+	
+	(printout t "Out of State Real Estate: ")
+	(bind ?o (read)) 
+	(assert (outstate ?o))
+	
+	(printout t "Family Situation: ")
+	(bind ?c (read)) 
+	(assert (fam ?c))
+	
+	(assert (user ?n ?a ?h ?o ?c))
+	
+	(assert (state onefive))
+)
+
+(defrule USER_FILTER
+	?a <- (age ?age)
+	?h <- (health ?he)
+	?o <- (outstate ?os)
+	?f <- (fam ?c)
+	(test (>= ?age 55))
+	(or (str-compare ?he "poor") (str-compare ?os "yes") (str-compare ?c "complex"))
+	=>
+	(printout t "NOTE: If you are above 55 years in age, have poor health," crlf
+		"have out of state assets, and/or have a complex family situation it is" crlf
+		"advised that you look more into getting a trust as they will provide you" crlf
+		"with more assurance that your assets will be handled according to your more" crlf
+		"immediate needs")
+	
+)
+
 ; LINE OF QUESTIONS IF MAKING A WILL
 (defrule WILL_ENTITIES
-	?f <- (state one)
+	?f <- (state onefiive)
 	?g <- (moreFamily NULL)
 	?e <- (entTotal ?et); To total up the amount of potential beneficiaries
-	(category will)
+	(or (category will) (category trust))
 	=>
 	(printout t "List all relational entities."crlf 
 		     "--------"crlf  
@@ -91,8 +146,6 @@
 	(bind ?v (read)) 
 	
 	(assert (entity ?n ?r ?a ?v))
-	(assert (entTotal (+ ?et 1)))
-	(retract ?e)
 	
 	(retract ?f)
 	(assert (state onefive))
@@ -254,11 +307,11 @@
 	(moreDebts yes)
 	=>
 	
-	(printout  t crlf"Name: ")
+	(printout  t "--------"crlf"Name: "crlf)
 	(bind ?n (read))
-	(printout t "Type: ")
+	(printout t "Type: "crlf)
 	(bind ?t (read))
-	(printout t "Value: ")
+	(printout t "Value: "crlf)
 	(bind ?v (read))
 	(assert (debt ?n ?t ?v))
 	(retract ?f);we must retract and assert this to make sure this rule fires again
@@ -313,15 +366,26 @@
 	(assert (state five))
 )
 
+(defrule over_trust;check to see if the total value of the user 
+					;exceeds the limit considered beneficial for a trust
+	?w <- (worthTotal ?wt)
+	(test(> ?wt 100000))
+	=>
+	(printout t "Probate costs for wills can cost your beneficiaries between 3-5% of"crlf
+		"the estates assets, even 2% of your asset total of: $" ?wt " would be: $" (* ?wt .02)crlf
+		"sing a trust may be a good alternative to avoid these probate costs.")
+)
+
 	
 ;DISTRIBUTION RULES *************************
 (defrule findAverages
 	?s <- (state five)
 	?w <- (worthTotal ?wt)
 	?m <- (moreFamily no)
-	?z <- (fuzzTotal ?ft)
+	?z <- (fuzzyTotal ?ft)
 	?e <- (entTotal ?et)
 	=>
+	(printout t ?et)
 	(assert (fuzzAvg (/ ?ft ?et)))
 	(assert (worthAvg (/ ?wt ?et)))
 	(retract ?s)
@@ -332,14 +396,15 @@
 	?g <- (fuzzAvg ?fa)
 	?w <- (worthAvg ?wa)
 	=>
-	(assert (distEnt ?n ?r (+ ?wa (* ?wa (/ (- ?t ?fa) 10)))));complicated formula to get the portion for
+	(printout t ?wa)
+	(assert (distEnt ?n ?r (+ ?wa (* ?wa (/ (- ?t ?fa) 100)))));complicated formula to get the portion for
 	;person based on the weighted average and the amount of assets
 )
 	
 (defrule testPrint
-	?h <- (distEnt ? ? ?)
+	?h <- (distEnt ?a ?b ?c)
 	=>
-	(printout t ?h)
+	(printout t ?a " " ?b " " ?c)
 )
 	
 
@@ -366,6 +431,7 @@
 	?z <- (fuzzyTotal ?ft)
 	=>
 	(bind ?t (moment-defuzzify ?f))
+	(retract ?f)
 	(retract ?e)
 	(retract ?z)
 	(assert (fuzzyTotal (+ ?ft ?t)));add the fuzzy value to the total for the averaging for weight
@@ -465,3 +531,4 @@
 	=>
 	(assert (Portion SmlstP)))
 	
+;END FUZZY RULES ********************************************
