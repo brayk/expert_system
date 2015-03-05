@@ -126,7 +126,7 @@
 	(printout t crlf"List all relational entities."crlf 
 		     "--------"crlf  
 		     "==Help=="crlf
-		     "Name: <Family Member Name>"
+		     "Name: <Family Member Name>"crlf
 		     "Relation: <How they relate> choices are:"crlf
 		     "{spouse, child, parent, sibling,"crlf
 		     "cousin, grandparent, other-family,"crlf
@@ -374,9 +374,9 @@
 	?t <- (temp temp)
 	(test(> ?wt 100000))
 	=>
-	(printout t crlf " Probate costs for wills can cost your beneficiaries between 3-5% of"crlf
-		" the estates assets, even 2% of your asset total of: $" ?wt " would be: $" (* ?wt .02)crlf
-		" Using a trust may be a good alternative to avoid these probate costs." crlf)
+	(printout t crlf "Probate costs for wills can cost your beneficiaries between 3-5% of"crlf
+		"the estates assets, even 2% of your asset total of: $" ?wt " would be: $" (* ?wt .02)crlf
+		"Using a trust may be a good alternative to avoid these probate costs." crlf)
 	(retract ?t)
 )
 
