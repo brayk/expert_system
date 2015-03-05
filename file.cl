@@ -284,7 +284,7 @@
 	(printout t "List all debts."crlf
 			"--------"crlf
 			"==Help=="crlf
-			"Name: <Debt Name> crlf"
+			"Name: <Debt Name>"crlf
 			"Type: <Debt Type> types include:"crlf
 			"student(loans), taxes, support, loan, credit, other"crlf
 			"Value: <Debt Value>"crlf
