@@ -131,9 +131,9 @@
 		     "{spouse, child, parent, sibling,"crlf
 		     "cousin, grandparent, other-family,"crlf
 		     "church, other-organization}"crlf
-		     "Affinity: <0-100> Desire to give an individual entity a portion of assets"
-			 "Viability: <0-100> Financial security and competency of the individual"
-			 "enter 'done' for both entries when finished"crlf
+ 		     "Affinity: <0-100> Desire to give an individual entity a portion of assets"crlf
+ 		     "Viability: <0-100> Financial security and competency of the individual"crlf
+ 		     "Enter 'done' for both entries when finished"crlf
 			 crlf
 		     "--------"crlf) 
 	(printout t "Name: ")
@@ -374,9 +374,9 @@
 	?t <- (temp temp)
 	(test(> ?wt 100000))
 	=>
-	(printout t crlf "Probate costs for wills can cost your beneficiaries between 3-5% of"crlf
-		"the estates assets, even 2% of your asset total of: $" ?wt " would be: $" (* ?wt .02)crlf
-		"sing a trust may be a good alternative to avoid these probate costs." crlf)
+	(printout t crlf " Probate costs for wills can cost your beneficiaries between 3-5% of"crlf
+		" the estates assets, even 2% of your asset total of: $" ?wt " would be: $" (* ?wt .02)crlf
+		" Using a trust may be a good alternative to avoid these probate costs." crlf)
 	(retract ?t)
 )
 
@@ -421,9 +421,9 @@
 	?p <- (print true)
 	?w <- (worthTotal ?wt)
 	=>
-	(printout t "Here are the division of your assets as assessed by your input"crlf
+	(printout t crlf "Here are the division of your assets as assessed by your input"crlf
 		"with a total worth of: " ?wt crlf)
-	(printout t "Name     Relationship      Portion"crlf)
+	(printout t "(Name, Relationship, Portion)"crlf)
 	(assert (pEnts true))
 )
 
@@ -431,7 +431,7 @@
 	(pEnts true)
 	?h <- (distEnt ?a ?b ?c)
 	=>
-	(printout t ?a "    " ?b "    " ?c crlf)
+	(printout t "("?a ", " ?b ", " ?c ")" crlf)
 )
 
 (defrule assetPrintHeader
@@ -439,7 +439,7 @@
 	?p <- (print true)
 	?a <- (assetTotal ?at)
 	=>
-	(printout t "Here are assets as taken through your input"crlf
+	(printout t crlf "Here are assets as taken through your input"crlf
 		"with a total of: " ?at)
 	(printout t "Name       Type       Value"crlf)
 	(assert (pAssets true))
@@ -457,7 +457,7 @@
 	?p <- (print true)
 	?d <- (debtTotal ?dt)
 	=>
-	(printout t "Here are debts as taken through your input"crlf
+	(printout t crlf "Here are debts as taken through your input"crlf
 		"with a total of: " ?dt)
 	(printout t "Name      Type        Value"crlf)
 	(assert (pDebts true))
