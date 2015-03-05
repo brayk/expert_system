@@ -67,7 +67,7 @@
 	(printout t "Tell me about yourself"crlf 
 		     "--------"crlf  
 		     "==Help=="crlf
-		     "Name: <Your Name>"
+		     "Name: <Your Name>"crlf
 		     "Age: <Age> "crlf
 		     "Health: <good/fair/poor> Roughly evaluate your health"crlf
 			 "Out of State Real Estate: <yes/no>"crlf
@@ -390,7 +390,7 @@
 	?z <- (fuzzyTotal ?ft)
 	?e <- (entTotal ?et)
 	=>
-	(printout t ?et)
+	;(printout t ?et)
 	(assert (fuzzAvg (/ ?ft ?et)))
 	(assert (worthAvg (/ ?wt ?et)))
 	(retract ?s)
@@ -403,7 +403,7 @@
 	?g <- (fuzzAvg ?fa)
 	?w <- (worthAvg ?wa)
 	=>
-	(printout t ?wa)
+	;(printout t ?wa)
 	(assert (distEnt ?n ?r (+ ?wa (* ?wa (/ (- ?t ?fa) 100)))));complicated formula to get the portion for
 	;person based on the weighted average and the amount of assets
 	(retract ?z)
@@ -441,7 +441,7 @@
 	=>
 	(printout t crlf "Here are assets as taken through your input"crlf
 		"with a total of: " ?at)
-	(printout t "Name       Type       Value"crlf)
+	(printout t crlf "Name       Type       Value"crlf)
 	(assert (pAssets true))
 )
 
@@ -459,7 +459,7 @@
 	=>
 	(printout t crlf "Here are debts as taken through your input"crlf
 		"with a total of: " ?dt)
-	(printout t "Name      Type        Value"crlf)
+	(printout t crlf "Name      Type        Value"crlf)
 	(assert (pDebts true))
 )
 
